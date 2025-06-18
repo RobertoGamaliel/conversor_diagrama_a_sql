@@ -18,38 +18,61 @@
             color: #4e555e;
             font-weight: 300;
         }
-        body{
+        .body{
             background-image: linear-gradient(to top , #1c2833, #707b7c,#bfc9ca,#e5e7e9, #fbfcfc, #fbfcfc);
+            min-height: 100vh;
+            width: 100%;
+            overflow: auto;
+        }
+        .blur{
+            backdrop-filter: blur(5px);
+        }
+
+        .responsive-width-1000 {
+            width: min(1000px, 95vw);
+            box-sizing: border-box;
+            margin: 0;
+        }
+
+        .responsive-width-800 {
+            width: 100%;
+            max-width: min(800px, 95vw);
+            box-sizing: border-box;
+            overflow-y: auto;
+            margin: 0;
         }
     </style>
 </head>
 
-<body class="container p-3 vh-100 bg-light">
-    <div class="row justify-content-center align-items-start">
-        <div class="text-center title w-100 h3 mt-2 text-center">
+<body class="p-1 m-0 body" >
+    <div class="d-flex row justify-content-center align-items-start p-0 m-0">
+        <div class="text-center title h3 m-0 p-0 mt-1 mb-2 text-center">
             Generador de SQL desde diagrama
             <img src="https://i.ibb.co/bM5c1z1w/help.png" alt="" height="30px" width="auto" data-bs-toggle="modal"
                 data-bs-target="#exampleModal" style="cursor: pointer;">
         </div>
-        <div class="bg-dark p-2 rounded mt-0" style="width:800px; height: 250px;">
-            <div class="text-white w-80 border-bottom">Pegar el texto de la tabla en formato XML de app.diagrams.net
+        <div class="bg-dark p-1 m-0 rounded responsive-width-800">
+            <div class="text-white w-100 border-bottom text-center fw-bold m-0 p-0">Pegar el texto de la tabla en formato XML de <i>app.diagrams.net</i>
             </div>
             <textarea class="form-control text-white border-0" rows="10"
                 style="background-color: #3b3b3b; width: 100%; resize: none; font-size: 12px; overflow: auto; font-family: monospace;"
                 oninput="makeSentence(this.value)"></textarea>
         </div>
-        <div class="bg-trasparent d-flex row justify-content-center m-1 mt-2 mb-2">
-            <button class="btn btn-primary m-0 me-0 ms-1" onclick="chtype('raw')" id='raw' style="width: 180px;">SQL
+        <div class="bg-trasparent d-flex row justify-content-center p-0 m-0 mt-2 mb-2">
+            <button class="btn btn-primary m-1" onclick="chtype('raw')" id='raw' style="width: 180px;">SQL
                 RAW</button>
-            <button class="btn btn-light m-0 me-0 ms-1" onclick="chtype('artisan')" id="'artisan"
+            <button class="btn btn-light m-1" onclick="chtype('artisan')" id="'artisan"
                 style="width: 180px;">Artisan</button>
         </div>
-        <div class="bg-white col-lg-12 m-0 mb-5 shadow-sm border rounded p-2" style="font-size: 12px;">
-            <pre class=""
-                id="sqlSentence">Ingrese el texto xml en el campo de entrada en la parte de arriba, en el recuadro oscuro</pre>
+
+        <div class="bg-white p-1 m-0 rounded responsive-width-800 mb-5">
+            <div class="text-dark w-100 m-0 p-0 border-bottom text-center fw-bold">Resutado de la conversión</div>
+            <pre class="m-0 p-1"id="sqlSentence" style="font-size: 13px; min-height: 150px;">
+Ingrese el texto xml en el campo de entrada en la parte de arriba, en el recuadro oscuro
+            </pre>
         </div>
     </div>
-    <div class="modal fade" id="exampleModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+    <div class="modal fade blur m-0" id="exampleModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
                 <div class="modal-header">
@@ -165,11 +188,11 @@ CREATE TABLE IF NOT EXISTS libros (
         const btnRaw = document.getElementById("raw");
         const btnArtisan = document.getElementById("'artisan");
         if (type === "raw") {
-            btnRaw.className = "btn btn-primary m-0 me-0 ms-1";
-            btnArtisan.className = "btn btn-light m-0 me-0 ms-1";
+            btnRaw.className = "btn btn-primary m-1";
+            btnArtisan.className = "btn btn-light m-1";
         } else {
-            btnRaw.className = "btn btn-light m-0 me-0 ms-1";
-            btnArtisan.className = "btn btn-primary m-0 me-0 ms-1";
+            btnRaw.className = "btn btn-light m-1";
+            btnArtisan.className = "btn btn-primary m-1";
         }
         procesarSeguroXML();
 
@@ -299,6 +322,10 @@ CREATE TABLE IF NOT EXISTS libros (
             if (/\bUNSIGNED\b/i.test(field.type)) {
                 column += '->unsigned()';
             }
+            if (/\bUNIQUE\b/i.test(field.type)) {
+                column += '->unique()';
+            }
+
             if (!field.isPrimaryKey && !field.type.toUpperCase().includes('NOT NULL')) {
                 column += '->nullable(true)';
             }
