@@ -326,6 +326,13 @@ CREATE TABLE IF NOT EXISTS libros (
                 column += '->unique()';
             }
 
+            const defaultMatch = field.type.match(/\bDEFAULT\s+(['"]?[\w\s\-\.:]+['"]?)/i);
+            if (defaultMatch) {
+                let defaultValue = defaultMatch[1];
+                // Si el valor por defecto ya tiene comillas, respétalas; si no, pásalo tal cual (puede ser número o palabra reservada)
+                column += `->default(${defaultValue})`;
+            }
+
             if (!field.isPrimaryKey && !field.type.toUpperCase().includes('NOT NULL')) {
                 column += '->nullable(true)';
             }
