@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <title>Generador de tablas SQL</title>
+    <style>
+        .flex-container {
+            display: flex;
+            flex-wrap: wrap;
+        }
+
+        .title {
+            color: #4e555e;
+            font-weight: 300;
+        }
+    </style>
+</head>
+
+<body class="container p-3 vh-100 bg-light">
+    <div class="row justify-content-center align-items-start">
+        <div class="text-center title w-100 h3 mt-2 text-center">Generador de SQL desde diagrama
+
+            <img src="https://i.ibb.co/bM5c1z1w/help.png" alt="" height="30px" width="auto" data-bs-toggle="modal"
+                data-bs-target="#exampleModal" style="cursor: pointer;">
+        </div>
+        <div class="bg-dark p-2 rounded mt-0" style="width:800px; height: 250px;">
+            <div class="text-white w-80 border-bottom">Tabla en formato XML de app.diagrams.net</div>
+            <textarea class="form-control text-white border-0" rows="10"
+                style="background-color: #3b3b3b; width: 100%; resize: none; font-size: 12px; overflow: auto; font-family: monospace;"
+                oninput="makeSentence(this.value)"></textarea>
+        </div>
+        <div class="bg-trasparent d-flex row justify-content-center m-1 mt-2 mb-2">
+            <button class="btn btn-primary m-0 me-0 ms-1" onclick="chtype('raw')" id='raw' style="width: 180px;">SQL
+                RAW</button>
+            <button class="btn btn-white m-0 me-0 ms-1" onclick="chtype('artisan')" id="'artisan"
+                style="width: 180px;">Artisan</button>
+        </div>
+        <div class="bg-white col-lg-12 m-0 mb-5 shadow-sm border rounded p-2"
+            style="font-size: 13px;font-family: monospace;">
+            <pre class="" id="sqlSentence">Ingrese el texto xml</pre>
+        </div>
+    </div>
+    <div class="modal fade" id="exampleModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="exampleModalLabel">¿Para qué sirve y cómo usarlo?</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                </div>
+                <div class="modal-body d-flex row justify-content-evenly p-2 pb-4">
+
+                    <div class='col-lg-12 text-start fw-bold'>¿Para qué sirve el generador de tablas?</div>
+                    <p style="text-align: justify;">
+                        Este generador te permite crear, en cuestión de segundos, una tabla SQL a partir de un diagrama.
+                    </p>
+                    <p style="text-align: justify;">
+                        En lo personal, utilizo la página <i>app.diagrams.net</i> para hacer mis diagramas porque es
+                        gratuita. Sin embargo, convertir esos diagramas a sentencias SQL puede llevar tiempo. Por eso
+                        desarrollé esta herramienta para uso personal, pero si tú también usas esta plataforma, puede
+                        serte de gran ayuda. Solo necesitas diseñar tu diagrama y este generador te devolverá la
+                        sentencia SQL correspondiente para crear tu tabla.
+                    </p>
+
+                    <div class='col-lg-12 mt-3 text-start fw-bold'>¿Cómo se usa?</div>
+                    <p style="text-align: justify;">
+                        Debes utilizar la forma llamada <strong>List</strong>, ubicada en el apartado
+                        <strong>Avanzado</strong> de la barra lateral izquierda. En la siguiente imagen se muestra un
+                        ejemplo:
+                    </p>
+                    <img src="https://i.ibb.co/YT7tfLxx/image.png" alt="Ejemplo de forma List" width="100%"
+                        style='max-width: 700px;'>
+
+                    <p style="text-align: justify;">Llena la forma siguiendo estas instrucciones:</p>
+                    <div class="w-100 ps-3 pe-3">
+                        <ul>
+                            <li>El <strong>primer elemento</strong> debe ser el nombre de la tabla (sin espacios). En la
+                                sintaxis de ejemplo, es donde dice <strong>nombre_de_la_tabla</strong>.</li>
+                            <li>Puedes agregar tantas columnas como necesites. Cada una debe tener una estructura
+                                específica para que el conversor pueda interpretarla correctamente:</li>
+                            <li><strong>nombre_de_columna</strong>: obligatorio. Solo texto, igual que en SQL estándar.
+                            </li>
+                            <li><strong>tipo_dato</strong>: obligatorio. Puede incluir tipo y restricciones, como <i>int
+                                    unsigned not null</i>, <i>float</i>, <i>varchar(20)</i>, etc.</li>
+                            <li><strong>configuración_adicional</strong>: opcional. Existen tres posibles casos:<br>
+                                — <strong>pk</strong>: si es llave primaria (<i>PRIMARY KEY</i>).<br>
+                                — <strong>index</strong>: si deseas indexar ese campo.<br>
+                                — <strong>tabla_referenciada,columna_referenciada</strong>: si es llave foránea
+                                (<i>FOREIGN KEY</i>), se indica con el nombre de la tabla y la columna de referencia.
+                            </li>
+                            <li>Los parámetros deben ir separados por <strong>:</strong> para que el generador los
+                                interprete correctamente.</li>
+                        </ul>
+                    </div>
+
+                    <p style="text-align: justify;">
+                        En la siguiente imagen se muestra un ejemplo completo, con la sintaxis y los tres casos de
+                        configuración:
+                    </p>
+                    <img src="https://i.ibb.co/7JxtXzXG/image.png" alt="Ejemplo completo de forma List" width="100%"
+                        style='max-width: 700px;'>
+
+                    <p style="text-align: justify;">
+                        Una vez que tengas lista tu forma con los datos de la tabla, selecciónala, haz clic derecho y
+                        elige la opción <strong>Copiar</strong> (no copiar como imagen). También puedes usar Ctrl + C,
+                        aunque a veces puede copiarse como imagen hexadecimal, lo que impide que el conversor la lea
+                        correctamente.
+                        <br><br>
+                        No necesitas presionar ningún botón. Simplemente pega el contenido en el campo del conversor. Si
+                        el texto es válido, se generará automáticamente la sentencia SQL. Si hay errores, se mostrará un
+                        mensaje para que ingreses un texto correcto.
+                    </p>
+
+                    <p style="text-align: justify;">
+                        Si trabajas con Laravel y generas tus tablas con <i>artisan migrate</i>, puedes hacer clic en el
+                        botón <strong>Artisan</strong> y obtendrás la migración lista para crear la tabla con el
+                        comando:
+                        <br><i>php artisan migrate</i>
+                    </p>
+                    <img src="https://i.ibb.co/BKjck7MF/image.png" alt="Botón Artisan" width="100%"
+                        style='max-width: 400px;'>
+
+                    <p style="text-align: justify;">
+                        Cuando copias una forma del diagrama, se genera un XML. El XML correspondiente al ejemplo
+                        anterior se convertiría en la siguiente sentencia SQL:
+                    </p>
+
+                    <pre class="border rounded shadow m-1 text-start bg-light"
+                        style='font-size: 13px; width: CALC(100% - 40px); padding: 5px;'>
+CREATE TABLE IF NOT EXISTS libros (
+  id BIGINT UNSIGNED NOT NULL PRIMARY KEY AUTO_INCREMENT,
+  nombre VARCHAR(255) NOT NULL,
+  fecha_carga DATETIME NOT NULL,
+  autor INT UNSIGNED NOT NULL,
+  FOREIGN KEY (autor) REFERENCES autores(id),
+  INDEX libros_idx0 (fecha_carga)
+);
+        </pre>
+
+                </div>
+            </div>
+        </div>
+    </div>
+
+</body>
+<script>
+    var xmlData = ``;
+    var type = "raw";
+
+    function makeSentence(value) {
+        xmlData = value;
+        printXml();
+    }
+
+    function chtype(type) {
+        this.type = type;
+        // Cambia la clase de los botones según el tipo seleccionado
+        const btnRaw = document.getElementById("raw");
+        const btnArtisan = document.getElementById("'artisan");
+        if (type === "raw") {
+            btnRaw.className = "btn btn-primary m-0 me-0 ms-1";
+            btnArtisan.className = "btn btn-light m-0 me-0 ms-1";
+        } else {
+            btnRaw.className = "btn btn-light m-0 me-0 ms-1";
+            btnArtisan.className = "btn btn-primary m-0 me-0 ms-1";
+        }
+        printXml();
+
+    }
+
+    function printXml() {
+        let dPrser = new DOMParser();
+        let xmlDoc = dPrser.parseFromString(xmlData, "application/xml");
+        let mxCells = xmlDoc.getElementsByTagName("mxCell");
+        let tableName = "";
+        let fields = [];
+        let indices = [];
+        let fks = [];
+
+        for (let i = 0; i < mxCells.length; i++) {
+            if (mxCells[i].getAttribute("value") === null) {
+                continue;
+            }
+
+            let cell = mxCells[i];
+            let value = cell.getAttribute("value");
+            let plainValue = value ? value.replace(/<[^>]+>/g, '') : '';
+            plainValue = decodeHTMLEntities(plainValue);
+
+            if (tableName === "") {
+                tableName = plainValue.trim();
+                continue;
+            }
+
+            let subElements = plainValue.split(":");
+            console.log(plainValue, subElements);
+            if (subElements.length < 2) {
+                continue;
+            }
+
+            subElements = subElements.map(el => el.trim());
+            indices = addIndex(tableName, subElements, indices);
+            fks = addFK(subElements, fks);
+
+            fields.push(getFields(subElements));
+        }
+
+        if (!tableName || !fields || fields.length === 0) {
+            console.error("No se pudo generar la sentencia SQL: faltan datos", tableName, fields, fks);
+            return "Ingrese el texto en formato correcto en el campo arriba";
+        }
+
+        $rawSQLsentence = type == 'artisan' ? makeArtisanMigration(tableName, fields, indices, fks) : makeRawSQLsentence(tableName, fields, indices, fks);
+
+        document.getElementById("sqlSentence").innerText = $rawSQLsentence;
+    }
+
+    function makeArtisanMigration(tableName, fields, indices, fks) {
+        let up = `\tSchema::create('${tableName}', function (Blueprint $table) \n\t{\n`;
+        fields.forEach(field => {
+            let typeParts = field.type.split(' ');
+            let laravelType = typeParts[0].toLowerCase();
+            let column = '';
+            switch (laravelType) {
+                case 'int':
+                case 'integer':
+                    column = `$table->integer('${field.name}')`;
+                    break;
+                case 'bigint':
+                    column = `$table->bigInteger('${field.name}')`;
+                    break;
+                case 'float':
+                    column = `$table->float('${field.name}')`;
+                    break;
+                case 'double':
+                    column = `$table->double('${field.name}')`;
+                    break;
+                case 'string':
+                case 'varchar':
+                    column = `$table->string('${field.name}')`;
+                    break;
+                case 'text':
+                    column = `$table->text('${field.name}')`;
+                    break;
+                case 'date':
+                    column = `$table->date('${field.name}')`;
+                    break;
+                case 'datetime':
+                    column = `$table->dateTime('${field.name}')`;
+                    break;
+                case 'boolean':
+                case 'tinyint':
+                    column = `$table->boolean('${field.name}')`;
+                    break;
+                default:
+                    // Si el tipo es varchar(N), extrae N y lo usa como longitud
+                    const varcharMatch = field.type.match(/^VARCHAR\s*\((\d+)\)/i);
+                    if (varcharMatch) {
+                        column = `$table->string('${field.name}', ${varcharMatch[1]})`;
+                    } else {
+                        column = `$table->string('${field.name}')`;
+                    }
+            }
+            if (field.isPrimaryKey) {
+                column += '->autoIncrement()->primary()';
+            }
+            if (/\bUNSIGNED\b/i.test(field.type)) {
+                column += '->unsigned()';
+            }
+            if (!field.isPrimaryKey && !field.type.toUpperCase().includes('NOT NULL')) {
+                column += '->nullable(true)';
+            }
+            up += `\t\t${column};\n`;
+        });
+
+        // Agregar claves foráneas en la migración (up)
+        fks.forEach(fk => {
+            up += `\t\t$table->foreign('${fk.column}')->references('${fk.columnRef}')->on('${fk.table}');\n`;
+        });
+        // Agregar índices en la migración (up)
+        indices.forEach(idx => {
+            up += `\t\t$table->index('${idx.column}', '${idx.indexName}');\n`;
+        });
+        up += '\t});';
+
+
+        let down = '';
+        if (fks.length > 0 || indices.length > 0) {
+            if (fks.length > 0) {
+                let fkList = fks.map(fk => `'${fk.column}'`);
+                down = `\t\t$table->dropForeign([${fkList.join(',')}]);\n`;
+            }
+
+            if (indices.length > 0) {
+                indices.forEach(idx => {
+                    down += `\t\t$table->dropIndex('${idx.indexName}');\n`;
+                });
+            }
+
+            down = `\tSchema::table('${tableName}', function (Blueprint $table)\n\t{\n${down}\n\t});\n`;
+        }
+
+
+        down += `\t\tSchema::dropIfExists('${tableName}');`;
+
+
+        return `public function up()\n{\n${up}\n}\n\npublic function down()\n{\n${down}\n}`;
+    }
+
+    /**
+     * Genera una sentencia SQL CREATE TABLE a partir de los datos proporcionados.
+     * @param {string} tableName - El nombre de la tabla a crear.
+     * @param {Array} fields - Un array de objetos que representan los campos de la tabla, cada uno con propiedades name, type e isPrimaryKey.
+     * @param {Array} indices - Un array de objetos que representan los índices a crear, cada uno con propiedades table, column e indexName.
+     * @param {Array} fks - Un array de objetos que representan las claves foráneas, cada uno con propiedades column, table y columnRef.
+     * @returns {string} - La sentencia SQL completa para crear la tabla.
+     */
+    function makeRawSQLsentence(tableName, fields, indices, fks) {
+        let sql = fields.map(field => {
+            return `\t${field.name} ${field.type}${field.isPrimaryKey ? ' PRIMARY KEY AUTO_INCREMENT' : ''}`;
+        });
+        let sentence = `CREATE TABLE IF NOT EXISTS ${tableName} (\n` + sql.join(",\n"); /*+ "\n);";*/
+
+        let fksSentence = fks.map(fk => `\tFOREIGN KEY (${fk.column}) REFERENCES ${fk.table}(${fk.columnRef})`).join(",\n");
+        if (fksSentence) {
+            sentence += ",\n" + fksSentence;
+        }
+
+        let indicesSentence = indices.map(idx => `\tINDEX ${idx.indexName} (${idx.column})`).join(",\n");
+        if (indicesSentence) {
+            sentence += ",\n" + indicesSentence;
+        }
+        return sentence += "\n);";
+
+    }
+
+    /**
+     * Extrae los campos de una fila de datos y devuelve un objeto con el nombre, tipo y si es clave primaria.
+     * @param {Array} subElements - Un array que contiene los elementos de la fila, donde el primer elemento es el nombre de la columna y el segundo es su tipo. puede contener un tercer elemento que podría indicar que es una llave primaria.
+     * @returns {Object} - Un objeto con las propiedades name, type e isPrimaryKey.
+     */
+    function getFields(subElements) {
+        return {
+            name: subElements[0],
+            type: subElements[1].toUpperCase(),
+            isPrimaryKey: subElements.length >= 3 && subElements[2].trim() === "pk"
+        };
+
+    }
+
+    /**
+     * Agrega un índice a la sentencia SQL si el tercer elemento del array subElements es "index".
+     * @param {string} tableName - El nombre de la tabla a la que pertenece la columna.
+     * @param {Array} subElements - Un array que contiene los elementos de la fila, donde el primer elemento es el nombre de la columna y el segundo es su tipo. puede contener un tercer elemento que podría indicar que es un índice.
+     * @param {Array} indices - Un array donde se almacenarán los índices encontrados.
+     * @returns {Array} - El array de índices actualizado.
+     */
+    function addIndex(tableName, subElements, indices) {
+        if (subElements.length < 3 || subElements[2].trim() !== "index") {
+            return indices;
+        }
+        let indexName = tableName + "_idx" + indices.length;
+        indices.push({
+            table: tableName,
+            column: subElements[0],
+            indexName: indexName
+        });
+        return indices;
+    }
+
+    /**
+     * Agrega una clave foránea a la sentencia SQL si el tercer elemento del array subElements contiene información de referencia a otra tabla.
+     * @param {Array} subElements - Un array que contiene los elementos de la fila, donde el primer elemento es el nombre de la columna y el segundo es su tipo. puede contener un tercer elemento que podría indicar que es una clave foránea.
+     * @param {Array} fks - Un array donde se almacenarán las claves foráneas encontradas.
+     * @returns {Array} - El array de claves foráneas actualizado.
+     */
+    function addFK(subElements, fks) {
+        if (subElements.length < 3 || ['index', 'pk'].includes(subElements[2].trim())) {
+            return fks;
+        }
+
+        let fkData = subElements[2].trim().split(",");
+        fkData = fkData.map(el => el.trim());
+        fks.push({
+            column: subElements[0],
+            table: fkData[0].trim(),
+            columnRef: fkData[1],
+        });
+        return fks;
+
+    }
+
+    /**
+     * Decodifica entidades HTML en un texto dado.
+     * @param {string} text - El texto que contiene entidades HTML.
+     * @returns {string} - El texto decodificado.
+     */
+    function decodeHTMLEntities(text) {
+        const txt = document.createElement('textarea');
+        txt.innerHTML = text;
+        return txt.value;
+    }
+
+
+</script>
+
+</html>
