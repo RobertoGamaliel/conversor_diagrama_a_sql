@@ -41,6 +41,9 @@
             overflow-y: auto;
             margin: 0;
         }
+        .pointer {
+            cursor: pointer;
+        }
     </style>
 </head>
 
@@ -52,22 +55,24 @@
                 data-bs-target="#exampleModal" style="cursor: pointer;">
         </div>
         <div class="bg-dark p-1 m-0 rounded responsive-width-800">
-            <div class="text-white w-100 border-bottom text-center fw-bold m-0 p-0">Pegar el texto de la tabla en formato XML de <i>app.diagrams.net</i>
+            <div class="text-white w-100 border-bottom text-center fw-bold m-0 p-0 pointer" onclick="copiarResultadoAlPortapapeles('xmlInput')">Pegar el texto de la tabla en formato XML de <i>app.diagrams.net</i>
             </div>
-            <textarea class="form-control text-white border-0" rows="10"
-                style="background-color: #3b3b3b; width: 100%; resize: none; font-size: 12px; overflow: auto; font-family: monospace;"
+            <textarea class="form-control text-white mt-1" rows="10" id="xmlInput"
+                style="background-color: #3b3b3b; width: 100%; resize: none; font-size: 12px; overflow: auto; font-family: monospace; transition: all 0.5s ease-in-out;"
                 oninput="makeSentence(this.value)"></textarea>
         </div>
         <div class="bg-trasparent d-flex row justify-content-center p-0 m-0 mt-2 mb-2">
             <button class="btn btn-primary m-1" onclick="chtype('raw')" id='raw' style="width: 180px;">SQL
                 RAW</button>
-            <button class="btn btn-light m-1" onclick="chtype('artisan')" id="'artisan"
+            <button class="btn btn-light m-1" onclick="chtype('artisan')" id="artisan"
                 style="width: 180px;">Artisan</button>
+            <button class="btn btn-light m-1" onclick="chtype('cSharp')" id="cSharp"
+                style="width: 210px;">Entity Framework Core C#</button>
         </div>
 
         <div class="bg-white p-1 m-0 rounded responsive-width-800 mb-5">
             <div class="text-dark w-100 m-0 p-0 border-bottom text-center fw-bold">Resutado de la conversión</div>
-            <pre class="m-0 p-1"id="sqlSentence" style="font-size: 13px; min-height: 150px;">
+            <pre class="m-0 p-1 pointer"id="sqlSentence" style="font-size: 13px; min-height: 150px; transition: all 0.5s ease-in-out;" onclick="copiarResultadoAlPortapapeles('sqlSentence')">
 Ingrese el texto xml en el campo de entrada en la parte de arriba, en el recuadro oscuro
             </pre>
         </div>
@@ -186,22 +191,28 @@ CREATE TABLE IF NOT EXISTS libros (
         this.type = type;
         // Cambia la clase de los botones según el tipo seleccionado
         const btnRaw = document.getElementById("raw");
-        const btnArtisan = document.getElementById("'artisan");
+        const btnArtisan = document.getElementById("artisan");
+        const btnCSharp = document.getElementById("cSharp");
+
+        btnRaw.className = "btn btn-light m-1";
+        btnArtisan.className = "btn btn-light m-1";
+        btnCSharp.className = "btn btn-light m-1";
+
         if (type === "raw") {
             btnRaw.className = "btn btn-primary m-1";
-            btnArtisan.className = "btn btn-light m-1";
-        } else {
-            btnRaw.className = "btn btn-light m-1";
+        }if (type === "artisan") {
             btnArtisan.className = "btn btn-primary m-1";
+        } else if (type === "cSharp") {
+            btnCSharp.className = "btn btn-primary m-1";
         }
         procesarSeguroXML();
-
     }
 
     function procesarSeguroXML() {
         try {
             printXml()
         } catch (error) {
+            console.log("Error al procesar el XML:", error);
             document.getElementById("sqlSentence").innerText = "Error al procesar el XML: Verifique que copió correctamente el elemento.";
         }
 
@@ -247,9 +258,22 @@ CREATE TABLE IF NOT EXISTS libros (
             return "Ingrese el texto en formato correcto en el campo arriba";
         }
 
-        $rawSQLsentence = type == 'artisan' ? makeArtisanMigration(tableName, fields, indices, fks) : makeRawSQLsentence(tableName, fields, indices, fks);
+        let rawSentence = "";
+        switch (type) {
+            case 'artisan':
+                rawSentence = makeArtisanMigration(tableName, fields, indices, fks);
+                break;
+            case 'cSharp':
+                rawSentence = cSharp(tableName, fields, indices, fks);
+                break;
+            case 'raw':
+                rawSentence = makeRawSQLsentence(tableName, fields, indices, fks);
+                break;
+            default:
+                break;
+        }
 
-        document.getElementById("sqlSentence").innerText = $rawSQLsentence;
+        document.getElementById("sqlSentence").innerText = rawSentence;
     }
 
     function makeArtisanMigration(tableName, fields, indices, fks) {
@@ -381,7 +405,7 @@ CREATE TABLE IF NOT EXISTS libros (
      * @param {Array} fks - Un array de objetos que representan las claves foráneas, cada uno con propiedades column, table y columnRef.
      * @returns {string} - La sentencia SQL completa para crear la tabla.
      */
-    function makeRawSQLsentence(tableName, fields, indices, fks) {
+    function makeRawSQLsentence(tableName, fields, indices, fks) {;
         let sql = fields.map(field => {
             return `\t${field.name} ${field.type}${field.isPrimaryKey ? ' PRIMARY KEY AUTO_INCREMENT' : ''}`;
         });
@@ -397,7 +421,158 @@ CREATE TABLE IF NOT EXISTS libros (
             sentence += ",\n" + indicesSentence;
         }
         return sentence += "\n);";
+    }
 
+    function cSharp(tableName, fields, indices, fks) {
+        let sentences = [];
+        let externalClass = [];
+        fields.forEach((element,index) => {
+            let tySepare = element.type.split(" ");
+            let type = tySepare[0].toLowerCase();
+            let notFindInSwitch = false;
+            switch (type) 
+            {
+                case "tinyint":
+                    type = "sbyte";
+                    break;
+                case "tinyint unsigned":
+                    type = "byte";
+                    break;
+                case "smallint":
+                    type = "short"; 
+                    break;
+                case "smallint unsigned":
+                    type = "ushort";
+                    break;
+                case "mediumint":
+                case "int":
+                    type = "int";
+                    break;
+                case "mediumint unsigned":
+                case "int unsigned":
+                    type = "uint";
+                    break;
+                case "bigint":
+                    type = "long";
+                    break;
+                case "bigint unsigned":
+                    type = "ulong";
+                    break;
+                case "float":
+                    type = "float";
+                    break;
+                case "double":
+                    type = "double";
+                    break;
+                case "string":
+                case "text":
+                case "longtext":
+                    type = "string";
+                    break;
+                case "datetime":
+                case "timestamp":
+                case "date":
+                    type = "DateTime";
+                    break;
+                case "blob":
+                case "binary":
+                case "varbinary":
+                    type = "byte[]"; 
+                    break;
+                default:
+                    type = "";
+                    notFindInSwitch = true;
+                    break;
+            }
+            
+            let nulleable = element.type.toLowerCase().includes("not null") ? '' : '?';
+            
+            if(notFindInSwitch) {
+                let handled = false;
+                
+                // Verificamos si es VARCHAR
+                const varcharMatch = element?.type?.toUpperCase()?.match(/^VARCHAR\s*\((\d+)\)/i);
+                if (varcharMatch) {
+                    sentences.push(`\t[MaxLength(${varcharMatch[1]})]\n\tpublic string${nulleable} ${element.name} { get; set; }\n`);
+                    handled = true;
+                }
+
+                // Verificamos si es un enum
+                if (!handled) {
+                    const enumMatch = element?.type?.toUpperCase()?.match(/^ENUM\s*\((.+)\)/i);
+                    if (enumMatch) {
+                        const enumValues = enumMatch[1].split(',').map(val => val.trim().replace(/'/g, ''));
+                        externalClass.push(`public enum ${toPascalCase(`${tableName}_${element.name}`, true)}\n{\n\t${enumValues.join(",\n\t")}\n}`);
+                        sentences.push(`\tpublic ${toPascalCase(`${tableName}_${element.name}`, true)}${nulleable} ${element.name} { get; set; }\n`);
+                        handled = true;
+                    }
+                }
+
+                // Verificamos si es un json
+                if (!handled) {
+                    const jsonMatch = element?.type?.toUpperCase()?.match(/^JSON/i);
+                    if (jsonMatch) {
+                        sentences.push(`\tpublic string ${element.name}${nulleable} { get; set; }\n`);
+                        handled = true;
+                    }
+                }
+
+                // Si no se pudo determinar el tipo, log y agregar como unknown
+                if (!handled) {
+                    sentences.push(`\tpublic string ${toPascalCase(`${element.name}_unknow`)}${nulleable} { get; set; }\n`);
+                }
+            }else{
+                sentences.push(`\tpublic ${type}${nulleable} ${element.name} { get; set; }\n`);
+            }
+        });
+
+        let sentence = `public class ${tableName}\n{\n${sentences.join("\n") + "\n"}`;
+        let externalClassSentence = externalClass.map(external => external).join("\n\n");
+        if(externalClassSentence != '') {
+            sentence = `\n` + externalClassSentence + `\n\n`+sentence;
+        }
+
+        let fksRemember = "";
+        if (fks.length > 0) {
+            let fksSentence = fks.map(fk => `\t[ForeignKey("${fk.column}")]\n\tpublic ${fk.table} ${fk.table} { get; set; }\n\n` ).join("");
+            sentence += fksSentence;
+            fksRemember = `/*IMPORTAR CLASE(S) REFERENCIADA(S) POR LA(S) ${fks.length} LLAVE(S) FORÁNEA(S)*/\n`;
+        }
+        sentence += "}\n";
+
+        if(indices.length > 0) {
+            let indicesSentence = indices.map((idx, index) => `\tmodelBuilder.Entity<${idx.table}>()\n\t\t.HasIndex(u => u.${idx.column})\n\t\t.HasDatabaseName("${idx.table}_idx${index}");`).join("\n\n");
+            sentence += `\n\n\n/*\nCODIGO COMPLEMENTARIO PARA INDICES: Pega esto en tu DbContext, dentro de OnModelCreating\n\n${indicesSentence}\n*/`;
+        }
+
+        let uniquesAndDefaults = fields.filter(field => field.type.toUpperCase().includes('UNIQUE') || field.type.toUpperCase().includes('DEFAULT'));
+        if(uniquesAndDefaults.length > 0) {
+            let uniquesSentence = uniquesAndDefaults.map(field => {
+                let unique = field.type.toUpperCase().includes('UNIQUE') ? `\tmodelBuilder.Entity<${tableName}>()\n\t\t.HasIndex(u => u.${field.name})\n\t\t.IsUnique();` : '';
+                let defaultValue = field.type.toUpperCase().includes('DEFAULT') ? `\tmodelBuilder.Entity<${tableName}>()\n\t\t.Property(u => u.${field.name})\n\t\t.HasDefaultValue(${field.type.match(/DEFAULT\s+(['"]?[\w\s\-\.:]+['"]?)/i)[1]});` : '';
+                return unique && defaultValue?`${unique}\n${defaultValue}`: unique ? unique : defaultValue;
+            }).join("\n\n");
+            sentence += `\n\n\n/*\nCODIGO COMPLEMENTARIO PARA UNICOS Y DEFAULTS: Pega esto en tu DbContext, dentro de OnModelCreating\n\n${uniquesSentence}\n*/`;
+        }
+
+
+        return fksRemember+sentence;
+    }
+
+    function toPascalCase(str, initialUpperCase = false) {
+        if(!str) return '';
+        let format=  str
+            .replace(/[_\-\s]+/g, ' ') // Reemplaza guiones, guiones bajos y espacios por espacio
+            .split(' ')
+            .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+            .join('');
+        if (initialUpperCase) format = format.charAt(0).toUpperCase() + format.slice(1);
+        return format;
+    }
+
+    function fieldFoireign(fieldName, fks) {
+        let fname = fieldName.trim().toLowerCase();
+        return fks.find(fks, fk => fk.column.toLowerCase() === fieldName);
     }
 
     /**
@@ -467,6 +642,37 @@ CREATE TABLE IF NOT EXISTS libros (
         return txt.value;
     }
 
+    /**
+     * Copia el contenido del elemento con id 'sqlSentence' al portapapeles.
+     */
+    function copiarResultadoAlPortapapeles(id) {
+        const el = document.getElementById(id);
+        if (!el) return;
+        let text = '';
+        if (el.tagName === 'TEXTAREA') {
+            text = el.value;
+        } else {
+            text = el.innerText;
+        }
+        if (navigator.clipboard) {
+            navigator.clipboard.writeText(text);
+        } else {
+            // Fallback para navegadores antiguos
+            const textarea = document.createElement('textarea');
+            textarea.value = text;
+            document.body.appendChild(textarea);
+            textarea.select();
+            try {
+                document.execCommand('copy');
+            } catch (err) {}
+            document.body.removeChild(textarea);
+        }
+
+        el.classList.add('bg-warning');
+        setTimeout(() => {
+            el.classList.remove('bg-warning');
+        }, 700);
+    }
 
 </script>
 
