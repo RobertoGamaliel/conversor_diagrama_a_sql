@@ -55,7 +55,7 @@
                 data-bs-target="#exampleModal" style="cursor: pointer;">
         </div>
         <div class="bg-dark p-1 m-0 rounded responsive-width-800">
-            <div class="text-white w-100 border-bottom text-center fw-bold m-0 p-0 pointer" onclick="copiarResultadoAlPortapapeles('xmlInput')">Pegar el texto de la tabla en formato XML de <i>app.diagrams.net</i>
+            <div class="text-white w-100 border-bottom text-center fw-bold m-0 p-0 pointer" onclick="copiarResultadoAlPortapapeles('xmlInput')" title="Clic para copiar XML del input">Pegar el texto de la tabla en formato XML de <i>app.diagrams.net</i>
             </div>
             <textarea class="form-control text-white mt-1" rows="10" id="xmlInput"
                 style="background-color: #3b3b3b; width: 100%; resize: none; font-size: 12px; overflow: auto; font-family: monospace; transition: all 0.5s ease-in-out;"
@@ -71,8 +71,8 @@
         </div>
 
         <div class="bg-white p-1 m-0 rounded responsive-width-800 mb-5">
-            <div class="text-dark w-100 m-0 p-0 border-bottom text-center fw-bold">Resutado de la conversión</div>
-            <pre class="m-0 p-1 pointer"id="sqlSentence" style="font-size: 13px; min-height: 150px; transition: all 0.5s ease-in-out;" onclick="copiarResultadoAlPortapapeles('sqlSentence')">
+            <div class="text-dark w-100 m-0 p-0 border-bottom text-center fw-bold pointer" onclick="copiarResultadoAlPortapapeles('sqlSentence')" title="Clic para copiar la conversión">Resutado de la conversión</div>
+            <pre class="m-0 p-1"id="sqlSentence" style="font-size: 13px; min-height: 150px; transition: all 0.5s ease-in-out;" >
 Ingrese el texto xml en el campo de entrada en la parte de arriba, en el recuadro oscuro
             </pre>
         </div>
@@ -426,63 +426,35 @@ CREATE TABLE IF NOT EXISTS libros (
     function cSharp(tableName, fields, indices, fks) {
         let sentences = [];
         let externalClass = [];
+        let dictionaryType = {
+                "int": "int",
+                "integer": "int",
+                "bigint": "long",
+                "float": "float",
+                "double": "double",
+                "string": "string",
+                "text": "string",
+                "date": "DateTime",
+                "datetime": "DateTime",
+                "timestamp": "DateTime",
+                "boolean": "bool",
+                "tinyint": "sbyte",
+                "smallint": "short",
+                "mediumint": "int",
+                "blob": "byte[]",
+                "binary": "byte[]",
+                "varbinary": "byte[]"
+            };
+
         fields.forEach((element,index) => {
             let tySepare = element.type.split(" ");
             let type = tySepare[0].toLowerCase();
             let notFindInSwitch = false;
-            switch (type) 
-            {
-                case "tinyint":
-                    type = "sbyte";
-                    break;
-                case "tinyint unsigned":
-                    type = "byte";
-                    break;
-                case "smallint":
-                    type = "short"; 
-                    break;
-                case "smallint unsigned":
-                    type = "ushort";
-                    break;
-                case "mediumint":
-                case "int":
-                    type = "int";
-                    break;
-                case "mediumint unsigned":
-                case "int unsigned":
-                    type = "uint";
-                    break;
-                case "bigint":
-                    type = "long";
-                    break;
-                case "bigint unsigned":
-                    type = "ulong";
-                    break;
-                case "float":
-                    type = "float";
-                    break;
-                case "double":
-                    type = "double";
-                    break;
-                case "string":
-                case "text":
-                case "longtext":
-                    type = "string";
-                    break;
-                case "datetime":
-                case "timestamp":
-                case "date":
-                    type = "DateTime";
-                    break;
-                case "blob":
-                case "binary":
-                case "varbinary":
-                    type = "byte[]"; 
-                    break;
-                default:
-                    type = "";
-                    notFindInSwitch = true;
-                    break;
+            
+            if(dictionaryType[type]) {
+                type = dictionaryType[type];
+            }else{
+                notFindInSwitch = true;
             }
             
             let nulleable = element.type.toLowerCase().includes("not null") ? '' : '?';
@@ -540,19 +512,25 @@ CREATE TABLE IF NOT EXISTS libros (
         }
         sentence += "}\n";
 
+        sentence += `\n#REFERENCIA EN CONTEXTO DE BASE DE DATOS:\n#Pega esto en tu archivo de contexto de base de datos (DbContext o equivalente)\n#para que se pueda generar la migración correctamente\n\tpublic DbSet<${tableName}> ${tableName} { get; set; }\n`;
+
         if(indices.length > 0) {
             let indicesSentence = indices.map((idx, index) => `\tmodelBuilder.Entity<${idx.table}>()\n\t\t.HasIndex(u => u.${idx.column})\n\t\t.HasDatabaseName("${idx.table}_idx${index}");`).join("\n\n");
-            sentence += `\n\n\n/*\nCODIGO COMPLEMENTARIO PARA INDICES: Pega esto en tu DbContext, dentro de OnModelCreating\n\n${indicesSentence}\n*/`;
+            sentence += `\n#CODIGO COMPLEMENTARIO PARA INDICES:\n#Pega esto en tu archivo de contexto de base de datos (DbContext o equivalente).\n#Ingresalo dentro del metódo OnModelCreating\n${indicesSentence}\n*/`;
         }
 
         let uniquesAndDefaults = fields.filter(field => field.type.toUpperCase().includes('UNIQUE') || field.type.toUpperCase().includes('DEFAULT'));
         if(uniquesAndDefaults.length > 0) {
             let uniquesSentence = uniquesAndDefaults.map(field => {
+                let tySepare =field.type.split(" ");
+                let explicitType = tySepare[0].toLowerCase();
+                explicitType = dictionaryType[explicitType]? `(${dictionaryType[explicitType]})` : '';
+
                 let unique = field.type.toUpperCase().includes('UNIQUE') ? `\tmodelBuilder.Entity<${tableName}>()\n\t\t.HasIndex(u => u.${field.name})\n\t\t.IsUnique();` : '';
-                let defaultValue = field.type.toUpperCase().includes('DEFAULT') ? `\tmodelBuilder.Entity<${tableName}>()\n\t\t.Property(u => u.${field.name})\n\t\t.HasDefaultValue(${field.type.match(/DEFAULT\s+(['"]?[\w\s\-\.:]+['"]?)/i)[1]});` : '';
+                let defaultValue = field.type.toUpperCase().includes('DEFAULT') ? `\tmodelBuilder.Entity<${tableName}>()\n\t\t.Property(u => u.${field.name})\n\t\t.HasDefaultValue(${explicitType}${field.type.match(/DEFAULT\s+(['"]?[\w\s\-\.:]+['"]?)/i)[1]});` : '';
                 return unique && defaultValue?`${unique}\n${defaultValue}`: unique ? unique : defaultValue;
             }).join("\n\n");
-            sentence += `\n\n\n/*\nCODIGO COMPLEMENTARIO PARA UNICOS Y DEFAULTS: Pega esto en tu DbContext, dentro de OnModelCreating\n\n${uniquesSentence}\n*/`;
+            sentence += `\n#CODIGO COMPLEMENTARIO PARA UNICOS Y DEFAULTS:\n#Pega esto en tu archivo de contexto de base de datos (DbContext o equivalente).\n#Ingresalo dentro del metódo OnModelCreating\n${uniquesSentence}\n*/`;
         }
 
 
